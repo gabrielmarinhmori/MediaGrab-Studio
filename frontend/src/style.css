@@ -1477,3 +1477,105 @@ footer > span {
     flex-wrap: wrap;
   }
 }
+.clip-selector {
+  border: 1px solid #383044;
+  background: #17131f;
+  border-radius: 8px;
+  padding: 14px;
+  margin-bottom: 20px;
+}
+.clip-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 12px;
+  color: #d6c8ea;
+  cursor: pointer;
+}
+.clip-toggle > span {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.clip-toggle input {
+  accent-color: #a583ee;
+  width: 17px;
+  height: 17px;
+  cursor: pointer;
+}
+.clip-selector p {
+  font-size: 10px;
+  line-height: 1.7;
+  color: #a99bb9;
+  margin: 10px 0 0;
+}
+.clip-timeline {
+  height: 10px;
+  background: #292131;
+  border-radius: 5px;
+  position: relative;
+  margin-top: 18px;
+  overflow: hidden;
+}
+.clip-selection {
+  height: 100%;
+  position: absolute;
+  background: linear-gradient(90deg, #a481ee, #687ade);
+}
+.clip-sliders {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-top: 12px;
+}
+.clip-sliders label {
+  font-size: 10px;
+}
+.clip-sliders input {
+  width: 100%;
+  accent-color: #b194f1;
+  cursor: ew-resize;
+  display: block;
+  margin-top: 8px;
+  height: 20px;
+}
+.clip-time-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-top: 12px;
+}
+.clip-time-fields input {
+  display: block;
+  width: 100%;
+  border: 1px solid #4b3c5f;
+  border-radius: 6px;
+  background: #0e0c13;
+  padding: 10px;
+  margin-top: 7px;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.clip-time-fields input:focus {
+  border-color: #b194f1;
+}
+.clip-summary {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 12px;
+  font-size: 10px;
+  color: #c5b1df;
+}
+.clip-summary strong {
+  font-weight: 500;
+  color: #b3baff;
+}
+.clip-selector p.clip-error {
+  color: #f1a4b4;
+}
+.clip-selector p.clip-caveat {
+  font-size: 9px;
+  color: #9283a2;
+}

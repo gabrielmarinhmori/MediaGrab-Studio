@@ -1,5 +1,6 @@
 """Validated extraction and loss-aware format selection. No shell commands."""
 
+import math
 import re
 from urllib.parse import parse_qs, urlparse
 
@@ -115,8 +116,49 @@ def analyze(url: str):
     }
 
 
-def download_options(mode, container, quality, audio_quality, format_id=None):
+def download_options(
+    mode,
+    container,
+    quality,
+    audio_quality,
+    format_id=None,
+    clip_start=None,
+    clip_end=None,
+):
     opts = base_options()
+    if clip_start is not None or clip_end is not None:
+        if (
+            clip_start is None
+            or clip_end is None
+            or not all(math.isfinite(t) for t in (clip_start, clip_end))
+            or clip_start < 0
+            or clip_end <= clip_start
+        ):
+            raise MediaError("Choose a valid clip start and end time.")
+
+        def selected_range(info, ydl):
+            duration = info.get("duration")
+            if duration is not None and (clip_start >= duration or clip_end > duration):
+                raise MediaError(
+                    "The selected clip is outside this video's duration. Analyze the video again and choose valid times."
+                )
+            return [{"start_time": clip_start, "end_time": clip_end}]
+
+        opts["download_ranges"] = selected_range
+        opts["force_keyframes_at_cuts"] = False
+        # Keep original timestamps through input seeking, then bound the output.
+        # Some DASH demuxers otherwise return an entire segment from before the cut.
+        opts["external_downloader_args"] = {
+            "ffmpeg_o": [
+                "-copyts",
+                "-ss",
+                str(clip_start),
+                "-t",
+                str(clip_end - clip_start),
+                "-avoid_negative_ts",
+                "make_zero",
+            ]
+        }
     if mode == "audio":
         opts["format"] = "bestaudio"
         if container != "original":

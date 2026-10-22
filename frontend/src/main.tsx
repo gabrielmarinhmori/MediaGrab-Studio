@@ -30,6 +30,8 @@ import {
   X,
 } from "lucide-react";
 import "./style.css";
+import { ClipSelector } from "./ClipSelector";
+import { formatETA, parseTimestamp, timestamp } from "./time";
 
 type Format = {
   format_id: string;
@@ -60,6 +62,8 @@ type Job = {
   total: number | null;
   speed?: number;
   eta?: number;
+  clip_start?: number | null;
+  clip_end?: number | null;
   filename?: string;
   size?: number;
   error?: string;
@@ -90,7 +94,7 @@ function bytes(n?: number | null) {
   return `${(n / 1024 ** i).toFixed(i ? 1 : 0)} ${["B", "KB", "MB", "GB"][i]}`;
 }
 function duration(n: number) {
-  return `${Math.floor(n / 60)}:${String(Math.floor(n % 60)).padStart(2, "0")}`;
+  return timestamp(n);
 }
 function App() {
   const [url, setUrl] = useState(""),
@@ -103,6 +107,20 @@ function App() {
     [audioFormat, setAudioFormat] = useState("original"),
     [bitrate, setBitrate] = useState("320"),
     [formatId, setFormatId] = useState("");
+  const [clipEnabled, setClipEnabled] = useState(false);
+  const [clipStart, setClipStart] = useState("0:00");
+  const [clipEnd, setClipEnd] = useState("0:00");
+  const clipFrom = parseTimestamp(clipStart),
+    clipTo = parseTimestamp(clipEnd);
+  const clipValid =
+    !clipEnabled ||
+    !!(
+      media &&
+      clipFrom !== null &&
+      clipTo !== null &&
+      clipTo > clipFrom &&
+      clipTo <= Math.floor(media.duration)
+    );
   const [clearingHistory, setClearingHistory] = useState(false);
   const [jobs, setJobs] = useState<Job[]>([]),
     [folder, setFolder] = useState(""),
@@ -144,8 +162,12 @@ function App() {
     setMedia(null);
     setFormatId("");
     setQuality("best");
+    setClipEnabled(false);
+    setClipStart("0:00");
     try {
-      setMedia(await api<Media>("/analyze", "POST", { url }));
+      const result = await api<Media>("/analyze", "POST", { url });
+      setMedia(result);
+      setClipEnd(timestamp(result.duration || 0));
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -153,7 +175,7 @@ function App() {
     }
   };
   const download = async () => {
-    if (!media) return;
+    if (!media || !clipValid) return;
     setSubmitting(true);
     setError("");
     try {
@@ -164,6 +186,8 @@ function App() {
         container: mode === "video" ? container : audioFormat,
         quality,
         audio_quality: Number(bitrate),
+        clip_start: clipEnabled ? clipFrom : null,
+        clip_end: clipEnabled ? clipTo : null,
         format_id: mode === "video" && formatId ? formatId : null,
       });
       await refresh();
@@ -442,6 +466,17 @@ function App() {
                       </div>
                     )}
                   </div>
+                  {media && (
+                    <ClipSelector
+                      duration={media.duration}
+                      enabled={clipEnabled}
+                      start={clipStart}
+                      end={clipEnd}
+                      onEnabled={setClipEnabled}
+                      onStart={setClipStart}
+                      onEnd={setClipEnd}
+                    />
+                  )}
                   <div
                     className="mode-tabs"
                     role="tablist"
@@ -603,7 +638,9 @@ function App() {
                   </div>
                   <button
                     className="primary download-button"
-                    disabled={!media || submitting || !online || !ffmpeg}
+                    disabled={
+                      !media || !clipValid || submitting || !online || !ffmpeg
+                    }
                     onClick={() => void download()}
                   >
                     {submitting ? (
@@ -615,12 +652,17 @@ function App() {
                       ? "Adding to queue…"
                       : "Download " + (mode === "video" ? "video" : "audio")}
                     <span>
-                      {selectedFormat
-                        ? bytes(
-                            selectedFormat.filesize ||
-                              selectedFormat.filesize_approx,
-                          )
-                        : "Best source quality"}
+                      {clipEnabled &&
+                      clipValid &&
+                      clipFrom !== null &&
+                      clipTo !== null
+                        ? `Clip · ${timestamp(clipTo - clipFrom)}`
+                        : selectedFormat
+                          ? bytes(
+                              selectedFormat.filesize ||
+                                selectedFormat.filesize_approx,
+                            )
+                          : "Best source quality"}
                     </span>
                   </button>
                   <div className="save-location">
@@ -770,6 +812,13 @@ function App() {
                           ·{" "}
                           {job.filename?.split(".").pop()?.toUpperCase() ||
                             "Media download"}
+                          {job.clip_start != null && job.clip_end != null && (
+                            <>
+                              {" "}
+                              · Clip {timestamp(job.clip_start)}–
+                              {timestamp(job.clip_end)}
+                            </>
+                          )}
                         </span>
                         {job.error && <p className="job-error">{job.error}</p>}
                         {["downloading", "processing", "queued"].includes(
@@ -827,7 +876,7 @@ function App() {
                         {job.status === "completed"
                           ? bytes(job.size)
                           : job.status === "downloading"
-                            ? `${bytes(job.downloaded)}${job.total ? " / " + bytes(job.total) : ""}${job.speed ? " · " + bytes(job.speed) + "/s" : ""}${job.eta ? " · " + job.eta + "s left" : ""}`
+                            ? `${bytes(job.downloaded)}${job.total ? " / " + bytes(job.total) : ""}${job.speed ? " · " + bytes(job.speed) + "/s" : ""}${formatETA(job.eta) !== null ? " · " + formatETA(job.eta) + " left" : ""}`
                             : "—"}
                       </small>
                     </div>

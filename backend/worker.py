@@ -36,10 +36,17 @@ def main():
         task["quality"],
         task["audio_quality"],
         task.get("format_id"),
+        task.get("clip_start"),
+        task.get("clip_end"),
     )
+    clip_label = ""
+    if task.get("clip_start") is not None:
+        clip_label = f" [clip {task['clip_start']:g}-{task['clip_end']:g}s]"
     opts.update(
         {
-            "outtmpl": str(Path(task["temp"]) / "%(title).150B [%(id)s].%(ext)s"),
+            "outtmpl": str(
+                Path(task["temp"]) / f"%(title).150B [%(id)s]{clip_label}.%(ext)s"
+            ),
             "progress_hooks": [progress],
             "postprocessor_hooks": [lambda d: emit({"status": "processing"})],
         }

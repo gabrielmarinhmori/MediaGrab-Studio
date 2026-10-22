@@ -61,3 +61,17 @@ def test_audio_always_starts_from_best_source(codec):
 
 def test_original_audio_is_not_converted():
     assert "postprocessors" not in download_options("audio", "original", "best", 320)
+
+
+def test_clip_requests_section_without_reencoding():
+    opts = download_options("video", "mkv", "best", 320, clip_start=60, clip_end=180)
+    assert opts["download_ranges"]({"duration": 43200}, None) == [
+        {"start_time": 60, "end_time": 180}
+    ]
+    assert opts["force_keyframes_at_cuts"] is False
+    with pytest.raises(MediaError):
+        opts["download_ranges"]({"duration": 120}, None)
+
+
+def test_full_download_does_not_request_a_section():
+    assert "download_ranges" not in download_options("video", "mkv", "best", 320)

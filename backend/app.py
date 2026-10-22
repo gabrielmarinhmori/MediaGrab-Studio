@@ -229,6 +229,8 @@ class DownloadRequest(AnalyzeRequest):
     quality: str = "best"
     audio_quality: int = 320
     format_id: str | None = None
+    clip_start: float | None = Field(default=None, ge=0, allow_inf_nan=False)
+    clip_end: float | None = Field(default=None, gt=0, allow_inf_nan=False)
 
 
 class SettingsRequest(BaseModel):
@@ -310,6 +312,12 @@ def create_job(body: DownloadRequest):
         url = validate_url(body.url)
     except MediaError as e:
         raise HTTPException(400, str(e)) from e
+    if (body.clip_start is None) != (body.clip_end is None) or (
+        body.clip_start is not None and body.clip_end <= body.clip_start
+    ):
+        raise HTTPException(
+            400, "Choose both clip times, with the end after the start."
+        )
     if body.mode not in {"video", "audio"} or body.container not in (
         {"mp4", "mkv", "webm"}
         if body.mode == "video"
@@ -350,6 +358,8 @@ def create_job(body: DownloadRequest):
             "created": time.time(),
             "folder": folder,
             "request": dict(body.model_dump(), url=url),
+            "clip_start": body.clip_start,
+            "clip_end": body.clip_end,
             "downloaded": 0,
             "total": None,
         }

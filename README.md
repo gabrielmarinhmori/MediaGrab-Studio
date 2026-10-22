@@ -34,6 +34,16 @@ chmod +x setup.command start.command stop.command
 
 Open **Settings** to choose another folder, for example `~/Downloads`, `/Users/yourname/Movies`, or `/Volumes/My Drive/Media`. Your Mac may ask Terminal for permission to access Downloads or an external drive. Existing files stay in the folder originally selected for their download. File access is limited to completed files recorded by this app; there is no arbitrary file browser.
 
+### Download just a section (trim)
+
+After Analyze, turn on **Download a clip**. Use the start/end handles or enter timestamps as `seconds`, `mm:ss`, or `hh:mm:ss`. The timeline highlights your selection and displays its duration. For two minutes from a 12-hour recording, for example, enter start `1:00:00` and end `1:02:00`. This works for video and audio. Turn the option off to download the full source again.
+
+The backend validates the range and asks yt-dlp/FFmpeg for that section, rather than intentionally downloading the entire source first. The source protocol, seeking support, and keyframes can require additional bytes; bandwidth savings are not guaranteed for every source. Invalid or out-of-duration selections fail rather than silently becoming full downloads.
+
+Fast cuts preserve original video streams without re-encoding. **Video boundaries may align to nearby keyframes**, so a clip is not guaranteed frame-exact. Audio conversions may also have small codec padding differences. The filename and history show the requested interval, and retries keep the selected times. Unknown source durations disable the clip controls.
+
+Remaining download time now adapts automatically: `45s`, `2m 15s`, or `1h 5m 30s`. FFmpeg section downloads may not supply a reliable byte total, speed, or ETA. Those values stay unavailable instead of showing a fabricated countdown; the active indicator remains visible.
+
 ### Video quality and compatibility
 
 - **Best available** selects yt-dlp's best actual source video plus best audio; it does not upscale or invent quality. Sources up to 8K are supported when available.
@@ -124,8 +134,8 @@ On Linux with an existing Chromium installation, set `PLAYWRIGHT_CHROMIUM_EXECUT
 ### Validation in the development workspace
 
 - Production TypeScript/Vite build passes.
-- 41 Python tests pass: URL safety, origin/host checks, API validation, queue/retry/cancellation, settings, file-serving restrictions, real HTTP downloads through yt-dlp, MKV/MP4/WebM output, all six audio choices, separate DASH audio/video merging, codec/frame-rate preservation, persistence, and cleanup. Media integration tests generate original synthetic audio/video with FFmpeg and serve it on loopback; they do not download third-party content.
-- Four Chromium browser tests pass: actual invalid-URL handling, source/audio control behavior and request construction with an explicitly mocked analysis response, responsive mobile/settings behavior, and history clearing with confirmation and active-job preservation.
+- 53 Python tests pass: URL safety, origin/host checks, API validation, queue/retry/cancellation, settings, file-serving restrictions, real HTTP downloads through yt-dlp, MKV/MP4/WebM output, all six audio choices, separate DASH audio/video merging, codec/frame-rate preservation, persistence, cleanup, clip validation/retries, and real partial video/audio downloads (including separate streams). Media integration tests generate original synthetic audio/video with FFmpeg and serve it on loopback; they do not download third-party content.
+- Seven browser/formatting tests pass: actual invalid-URL handling, source/audio control behavior and request construction with an explicitly mocked analysis response, responsive mobile/settings behavior, history clearing with confirmation and active-job preservation, twelve-hour clip selection, range validation, and ETA formatting.
 - Launcher start/repeated-start/stop/restart passes on Linux; shell syntax checks pass. **macOS Finder launch, Homebrew installation, and automatic browser opening require verification on an actual Mac.**
 - **Live YouTube extraction could not be verified here:** the development workspace proxy returns HTTP 403 for YouTube. The app does not contain a fake success path; real extraction uses yt-dlp and reports the error. Live extraction/download needs verification on your Mac with your authorized content and network.
 

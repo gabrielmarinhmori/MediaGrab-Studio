@@ -155,3 +155,37 @@ def test_cancelled_queued_worker_can_run_after_history_cleared(client):
     assert client.delete("/api/jobs").json() == {"cleared": 1}
     service.run("cancelled-job")
     assert "cancelled-job" not in service.jobs
+
+
+@pytest.mark.parametrize(
+    "clip",
+    [
+        {"clip_start": 10},
+        {"clip_end": 20},
+        {"clip_start": 20, "clip_end": 10},
+        {"clip_start": 10, "clip_end": 10},
+        {"clip_start": -1, "clip_end": 10},
+        {"clip_start": 0, "clip_end": 0},
+    ],
+)
+def test_reject_invalid_clip_ranges(client, clip):
+    response = client.post(
+        "/api/jobs", json={"url": "https://youtu.be/BaW_jenozKc", **clip}
+    )
+    assert response.status_code in {400, 422}
+    assert not service.jobs
+
+
+def test_clip_is_saved_in_job_and_preserved_on_retry(client, monkeypatch):
+    monkeypatch.setattr(service.pool, "submit", lambda *args: None)
+    response = client.post(
+        "/api/jobs",
+        json={"url": "https://youtu.be/BaW_jenozKc", "clip_start": 60, "clip_end": 180},
+    )
+    assert response.status_code == 201
+    job = response.json()
+    assert job["clip_start"] == 60 and job["clip_end"] == 180
+    client.post(f"/api/jobs/{job['id']}/cancel")
+    retry = client.post(f"/api/jobs/{job['id']}/retry")
+    assert retry.status_code == 201
+    assert retry.json()["clip_start"] == 60 and retry.json()["clip_end"] == 180
