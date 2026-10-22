@@ -30,6 +30,8 @@ chmod +x setup.command start.command stop.command
 4. Click **Download video** or **Download audio**. The file is saved **automatically to your Mac's Downloads folder**. No browser save dialog is needed.
 5. Watch progress in **Recent downloads**. Cancel active or queued jobs, retry failed/cancelled jobs, and see persistent **Download history**. The history's download icon saves an additional copy through your browser.
 
+**Clear history** removes completed, failed, and cancelled entries after confirmation. Your saved videos and audio files stay on disk. Queued, downloading, and processing jobs are kept, as are cancelled workers still shutting down. Clearing history is permanent; those entries no longer offer browser downloads or retries. Use Finder to delete unwanted media files and free storage.
+
 Open **Settings** to choose another folder, for example `~/Downloads`, `/Users/yourname/Movies`, or `/Volumes/My Drive/Media`. Your Mac may ask Terminal for permission to access Downloads or an external drive. Existing files stay in the folder originally selected for their download. File access is limited to completed files recorded by this app; there is no arbitrary file browser.
 
 ### Video quality and compatibility
@@ -122,8 +124,8 @@ On Linux with an existing Chromium installation, set `PLAYWRIGHT_CHROMIUM_EXECUT
 ### Validation in the development workspace
 
 - Production TypeScript/Vite build passes.
-- 39 Python tests pass: URL safety, origin/host checks, API validation, queue/retry/cancellation, settings, file-serving restrictions, real HTTP downloads through yt-dlp, MKV/MP4/WebM output, all six audio choices, separate DASH audio/video merging, codec/frame-rate preservation, persistence, and cleanup. Media integration tests generate original synthetic audio/video with FFmpeg and serve it on loopback; they do not download third-party content.
-- Three Chromium browser tests pass: actual invalid-URL handling, source/audio control behavior and request construction with an explicitly mocked analysis response, and responsive mobile/settings behavior.
+- 41 Python tests pass: URL safety, origin/host checks, API validation, queue/retry/cancellation, settings, file-serving restrictions, real HTTP downloads through yt-dlp, MKV/MP4/WebM output, all six audio choices, separate DASH audio/video merging, codec/frame-rate preservation, persistence, and cleanup. Media integration tests generate original synthetic audio/video with FFmpeg and serve it on loopback; they do not download third-party content.
+- Four Chromium browser tests pass: actual invalid-URL handling, source/audio control behavior and request construction with an explicitly mocked analysis response, responsive mobile/settings behavior, and history clearing with confirmation and active-job preservation.
 - Launcher start/repeated-start/stop/restart passes on Linux; shell syntax checks pass. **macOS Finder launch, Homebrew installation, and automatic browser opening require verification on an actual Mac.**
 - **Live YouTube extraction could not be verified here:** the development workspace proxy returns HTTP 403 for YouTube. The app does not contain a fake success path; real extraction uses yt-dlp and reports the error. Live extraction/download needs verification on your Mac with your authorized content and network.
 

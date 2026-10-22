@@ -82,8 +82,8 @@ def run(job_id):
     proc = None
     try:
         with lock:
-            job = jobs[job_id]
-            if job["status"] == "cancelled":
+            job = jobs.get(job_id)
+            if not job or job["status"] == "cancelled":
                 return
             temp.mkdir()
             task = dict(job["request"], temp=str(temp))
@@ -282,6 +282,22 @@ def save_settings(body: SettingsRequest):
 def list_jobs():
     with lock:
         return [public(j) for j in reversed(list(jobs.values()))]
+
+
+@app.delete("/api/jobs")
+def clear_history():
+    """Forget stopped downloads without deleting media or touching running workers."""
+    with lock:
+        removable = [
+            job_id
+            for job_id, job in jobs.items()
+            if job["status"] in {"completed", "failed", "cancelled"}
+            and job_id not in processes
+        ]
+        for job_id in removable:
+            del jobs[job_id]
+        persist()
+        return {"cleared": len(removable)}
 
 
 def public(job):

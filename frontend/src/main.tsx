@@ -25,6 +25,7 @@ import {
   Settings2,
   ShieldCheck,
   Sparkles,
+  Trash2,
   Video,
   X,
 } from "lucide-react";
@@ -102,6 +103,7 @@ function App() {
     [audioFormat, setAudioFormat] = useState("original"),
     [bitrate, setBitrate] = useState("320"),
     [formatId, setFormatId] = useState("");
+  const [clearingHistory, setClearingHistory] = useState(false);
   const [jobs, setJobs] = useState<Job[]>([]),
     [folder, setFolder] = useState(""),
     [draftFolder, setDraftFolder] = useState(""),
@@ -180,6 +182,27 @@ function App() {
       await refresh();
     } catch (e) {
       setError((e as Error).message);
+    }
+  };
+  const clearHistory = async () => {
+    if (
+      !window.confirm(
+        "Clear finished download history? Your saved videos and audio files will stay on your Mac. Downloads in progress will be kept.",
+      )
+    )
+      return;
+    setClearingHistory(true);
+    setError("");
+    try {
+      const result = await api<{ cleared: number }>("/jobs", "DELETE");
+      await refresh();
+      setNotice(
+        `${result.cleared} history ${result.cleared === 1 ? "entry" : "entries"} cleared. Your saved files have not been deleted.`,
+      );
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setClearingHistory(false);
     }
   };
   const completed = jobs.filter((j) => j.status === "completed"),
@@ -693,11 +716,31 @@ function App() {
                 {page === "history" ? "All downloads" : "Recent downloads"}{" "}
                 <span>{jobs.length}</span>
               </h2>
-              {page === "studio" && (
-                <button onClick={() => setPage("history")}>
-                  View history <ArrowUpRight size={14} />
+              <div className="history-controls">
+                {page === "studio" && (
+                  <button onClick={() => setPage("history")}>
+                    View history <ArrowUpRight size={14} />
+                  </button>
+                )}
+                <button
+                  onClick={() => void clearHistory()}
+                  disabled={
+                    !online ||
+                    clearingHistory ||
+                    !jobs.some((j) =>
+                      ["completed", "failed", "cancelled"].includes(j.status),
+                    )
+                  }
+                  title="Remove finished history entries. Saved media files are kept."
+                >
+                  {clearingHistory ? (
+                    <Loader2 className="spin" size={14} />
+                  ) : (
+                    <Trash2 size={14} />
+                  )}
+                  {clearingHistory ? "Clearing…" : "Clear history"}
                 </button>
-              )}
+              </div>
             </div>
             <div className="history-table">
               <div className="table-labels">

@@ -114,3 +114,44 @@ def test_cancel_queued_and_retry(client, monkeypatch):
     assert client.post(f"/api/jobs/{job['id']}/retry").status_code == 201
     assert len(client.get("/api/jobs").json()) == 2
     assert client.post(f"/api/jobs/{job['id']}/cancel").status_code == 409
+
+
+def test_clear_history_keeps_files_and_active_jobs(client, tmp_path):
+    import json
+
+    media = tmp_path / "personal-video.mp4"
+    media.write_bytes(b"original media bytes")
+    for status in [
+        "completed",
+        "failed",
+        "cancelled",
+        "queued",
+        "downloading",
+        "processing",
+    ]:
+        service.jobs[status] = {"id": status, "status": status, "path": str(media)}
+    # A cancelled worker can still be winding down; do not remove its state yet.
+    service.jobs["winding-down"] = {"id": "winding-down", "status": "cancelled"}
+    service.processes["winding-down"] = object()
+    try:
+        response = client.delete("/api/jobs")
+        assert response.status_code == 200
+        assert response.json() == {"cleared": 3}
+        assert set(service.jobs) == {
+            "queued",
+            "downloading",
+            "processing",
+            "winding-down",
+        }
+        assert set(json.loads(service.STATE.read_text())["jobs"]) == set(service.jobs)
+        assert media.read_bytes() == b"original media bytes"
+        assert client.delete("/api/jobs").json() == {"cleared": 0}
+    finally:
+        service.processes.pop("winding-down")
+
+
+def test_cancelled_queued_worker_can_run_after_history_cleared(client):
+    service.jobs["cancelled-job"] = {"id": "cancelled-job", "status": "cancelled"}
+    assert client.delete("/api/jobs").json() == {"cleared": 1}
+    service.run("cancelled-job")
+    assert "cancelled-job" not in service.jobs

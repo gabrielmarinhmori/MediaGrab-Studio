@@ -1448,3 +1448,32 @@ footer > span {
     transition: none !important;
   }
 }
+
+.history-controls {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.history-controls button {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: none;
+  font-size: 10px;
+  color: #b8a5cb;
+  padding: 0;
+}
+@media (max-width: 480px) {
+  .history-controls {
+    gap: 10px;
+  }
+  .history-controls button {
+    font-size: 9px;
+  }
+  .history-heading {
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+}
